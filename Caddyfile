@@ -1,6 +1,0 @@
-# Caddy gets and renews a Let's Encrypt certificate for $DOMAIN automatically,
-# and proxies Streamlit's websocket without extra config.
-{$DOMAIN} {
-	encode zstd gzip
-	reverse_proxy app:8501
-}

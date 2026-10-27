@@ -28,9 +28,6 @@ class Sura:
     name: str
     words: list[Word]
 
-    def ayah_text(self, ayah: int) -> str:
-        return " ".join(w.text for w in self.words if w.ayah == ayah)
-
 
 def _tanzil_lines() -> list[str]:
     if not TANZIL_FILE.exists():
@@ -62,6 +59,19 @@ def load_sura(number: int) -> Sura:
         tokens = ayat[a].split()
         words += [Word(t, a, i == len(tokens) - 1) for i, t in enumerate(tokens)]
     return Sura(number, Aya(number, 1).get().sura_name, words)
+
+
+def passage(sura: int, ayah_from: int = 1, ayah_to: int | None = None) -> Sura:
+    """Ayat `ayah_from`..`ayah_to` of a sura; the basmala is included when starting at ayah 1."""
+    if not 1 <= sura <= 114:
+        raise ValueError("sura must be 1–114")
+    full = load_sura(sura)
+    last = full.words[-1].ayah
+    ayah_to = last if ayah_to is None else ayah_to
+    if not 1 <= ayah_from <= ayah_to <= last:
+        raise ValueError(f"sura {sura} has ayat 1–{last}")
+    first = 0 if ayah_from == 1 else ayah_from
+    return Sura(sura, full.name, [w for w in full.words if first <= w.ayah <= ayah_to])
 
 
 # --- Normalization ---------------------------------------------------------

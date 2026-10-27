@@ -11,7 +11,7 @@ from quran_transcript import MoshafAttributes, explain_error, quran_phonetizer
 from quran import Sura, align, tokenize
 from transcriber import SAMPLE_RATE, WhisperEngine
 
-MUAALEM_MODEL = "Muaalem (tajweed)"
+MUAALEM_MODEL = "obadx/muaalem-model-v3_2"
 
 ERROR_TYPES_AR = {"tajweed": "تجويد", "tashkeel": "تشكيل", "normal": "حروف"}
 SPEECH_ERRORS_AR = {"insert": "زيادة", "delete": "نقص", "replace": "إبدال"}
@@ -19,7 +19,7 @@ SPEECH_ERRORS_AR = {"insert": "زيادة", "delete": "نقص", "replace": "إب
 
 @dataclass
 class TajweedError:
-    word: int  # global word index in the sura
+    word: int  # word index in the passage
     kind: str  # tajweed / tashkeel / normal
     detail: str
     expected: str
@@ -71,7 +71,9 @@ class TajweedEngine:
     def __init__(self):
         cuda = torch.cuda.is_available()
         # bfloat16 is what the model was trained with.
-        self.model = Muaalem(device="cuda" if cuda else "cpu", dtype=torch.bfloat16 if cuda else torch.float32)
+        self.model = Muaalem(
+            MUAALEM_MODEL, device="cuda" if cuda else "cpu", dtype=torch.bfloat16 if cuda else torch.float32
+        )
         self._lock = threading.Lock()
         ref = quran_phonetizer("قُلْ", default_moshaf(), remove_spaces=True)
         self.model([np.zeros(SAMPLE_RATE, dtype=np.float32)], [ref], sampling_rate=SAMPLE_RATE)

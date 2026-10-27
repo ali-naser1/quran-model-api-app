@@ -270,7 +270,6 @@ export default function (component) {
     });
     rec.textContent = inst.recording ? "■ Stop" : "● Start reading";
     rec.classList.toggle("on", inst.recording);
-    rec.disabled = !d.ready && !inst.recording;
     let msg = inst.localMessage || d.message || "";
     if (inst.recording) {
       const secs = ((performance.now() - inst.t0) / 1000).toFixed(1);
