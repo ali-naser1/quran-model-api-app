@@ -17,7 +17,7 @@ load_dotenv()
 # 127.0.0.1, not localhost: on Windows "localhost" tries IPv6 first and adds ~2 s per request.
 API_URL = os.environ.get("API_URL", "http://127.0.0.1:8000").rstrip("/")
 DOCS_URL = os.environ.get("API_DOCS_URL", f"{API_URL}/docs")  # as the browser sees it
-SURA = 112  # Al-Ikhlas
+SURAS = {112: "Al-Ikhlas", 114: "An-Nas"}
 READER_KEY = "reader"
 SAMPLE_RATE = 16_000
 
@@ -132,7 +132,7 @@ def check(rs: ReaderState, settings: dict, *, tajweed: bool, live: bool):
         rs.result = api(
             "POST",
             "/tajweed/check",
-            params={"sura": SURA, "tajweed": tajweed, "live": live, **settings},
+            params={"tajweed": tajweed, "live": live, **settings},
             files={"file": ("recitation.wav", rs.wav(), "audio/wav")},
         )
         rs.error = ""
@@ -246,16 +246,20 @@ def load_text(sura: int) -> dict:
 
 def read_tab():
     st.write("Recite while words are checked live → `POST /tajweed/check`.")
+    sura = st.segmented_control(
+        "Sura", list(SURAS), default=112, required=True, format_func=SURAS.get, key="read_sura", on_change=on_reset
+    )
     check_harakat = st.toggle("Check harakat", value=True, key="read_harakat")
     with st.expander("Moshaf settings (Hafs · madd lengths)"):
         with st.container(horizontal=True):
             settings = {
+                "sura": sura,
                 "check_harakat": check_harakat,
                 "madd_monfasel_len": st.selectbox("Monfasel", [2, 3, 4, 5], index=2),
                 "madd_mottasel_len": st.selectbox("Mottasel", [4, 5, 6], index=0),
                 "madd_aared_len": st.selectbox("Aared (waqf)", [2, 4, 6], index=1),
             }
-    reader(load_text(SURA), settings)
+    reader(load_text(sura), settings)
     st.caption("Text: [Tanzil.net](https://tanzil.net) (Uthmani) · Font: Amiri Quran · Tajweed: Quran Muaalem")
 
 

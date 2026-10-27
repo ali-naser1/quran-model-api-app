@@ -16,7 +16,7 @@ services:
     volumes:
       - models:/models  # Hugging Face cache, so models download only once
     ports:
-      - "${API_BIND:-127.0.0.1}:8000:8000"
+      - "${API_BIND:-127.0.0.1}:${API_PORT:-8000}:8000"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
       interval: 30s
@@ -31,9 +31,9 @@ services:
       --server.headless=true --browser.gatherUsageStats=false
     environment:
       API_URL: http://api:8000
-      API_DOCS_URL: http://127.0.0.1:8000/docs  # through the SSH tunnel
+      API_DOCS_URL: http://127.0.0.1:${API_PORT:-8000}/docs  # through the SSH tunnel
     ports:
-      - "127.0.0.1:8501:8501"
+      - "127.0.0.1:${TESTER_PORT:-8501}:8501"
     depends_on:
       - api
 
