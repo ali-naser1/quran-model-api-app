@@ -1,6 +1,6 @@
 # Quran Speech API
 
-Two HTTP APIs running on this PC's GPU, reached from the VPS over Tailscale:
+Two HTTP APIs for checking Quran recitation:
 
 | API | Endpoint | Model |
 |---|---|---|
@@ -9,25 +9,15 @@ Two HTTP APIs running on this PC's GPU, reached from the VPS over Tailscale:
 
 Plus a Streamlit app to test both by hand.
 
-## Run (this PC)
+## Run
 
-```powershell
-uv sync                 # first time only (CUDA 12.8 PyTorch)
-.\run_api.ps1           # API on :8000, docs at http://127.0.0.1:8000/docs
-.\run.ps1               # optional: Streamlit test client on :8501
-```
+| Where | How |
+|---|---|
+| **VPS** (Docker, CPU) | See [DEPLOY.md](DEPLOY.md) |
+| **This PC** (GPU) | `uv sync` once, then `.\run_api.ps1` (API :8000) and `.\run.ps1` (tester :8501) |
 
-Both models load at start-up (~10 s, ~1.3 GB VRAM) and stay loaded.
-
-## Reach it from the VPS (Tailscale)
-
-1. On this PC: start Tailscale (`tailscale up`). Its Tailscale IP is `100.81.142.105`.
-2. On the VPS: install Tailscale and `tailscale up` with the same account.
-3. Allow the port on this PC, Tailscale addresses only (admin PowerShell):
-   ```powershell
-   New-NetFirewallRule -DisplayName "Quran API (Tailscale)" -Direction Inbound -Protocol TCP -LocalPort 8000 -RemoteAddress 100.64.0.0/10 -Action Allow
-   ```
-4. From the VPS: `curl http://100.81.142.105:8000/health`
+Both models load at start-up and stay loaded (~1.3 GB VRAM on GPU, ~3 GB RAM on CPU).
+Docs: `http://127.0.0.1:8000/docs`.
 
 Every call except `/health` needs the `X-API-Key` header; the key is `API_KEY` in `.env`.
 
@@ -76,13 +66,13 @@ Returns one entry per word, in the same order as `GET /tajweed/passage`:
 
 The Uthmani words (Tanzil) with the indices `/check` uses — for rendering the text.
 
-### Example (Python, from the VPS)
+### Example (Python, on the VPS)
 
 ```python
 import requests
 
 r = requests.post(
-    "http://100.81.142.105:8000/tajweed/check",
+    "http://127.0.0.1:8000/tajweed/check",
     params={"sura": 112},
     headers={"X-API-Key": API_KEY},
     files={"file": open("recitation.webm", "rb")},
@@ -99,7 +89,7 @@ for w in r.json()["words"]:
 2. With `tajweed=true`, the audio is split at pauses, each piece is phonetized as its own
    waqf/ibtida segment and checked by Muaalem (madd, ghunna, qalqala, letter sifat…).
 
-Speed on the RTX 5060 Ti: Ikhlas (16 s) → words-only 0.2 s, full check ~1.9 s.
+Speed for Ikhlas (16 s): words-only 0.2 s GPU / ~0.6 s CPU · full check ~1.9 s GPU / ~5 s CPU.
 
 ## Files
 
@@ -110,6 +100,7 @@ Speed on the RTX 5060 Ti: Ikhlas (16 s) → words-only 0.2 s, full check ~1.9 s.
 | `tajweed.py` | Muaalem: pause splitting, error → word mapping |
 | `quran.py` | Tanzil text, normalization, alignment & scoring |
 | `app.py`, `reader_component.py` | Streamlit test client (live Mushaf reader) |
+| `Dockerfile`, `docker-compose*.yml` | VPS deploy (see DEPLOY.md) |
 
 Text: [Tanzil.net](https://tanzil.net) Uthmani (downloaded once to `data/`). `samples/` holds
 Alafasy recitations from everyayah.com for testing.

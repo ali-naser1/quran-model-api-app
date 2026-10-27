@@ -1,0 +1,41 @@
+x-image: &image
+  image: quran-speech:latest
+  build:
+    context: .
+    args:
+      TORCH: ${TORCH:-cpu}
+  restart: unless-stopped
+  env_file:
+    - path: .env
+      required: false
+
+services:
+  # The two APIs. Only reachable from the VPS itself (127.0.0.1) unless API_BIND is changed.
+  api:
+    <<: *image
+    volumes:
+      - models:/models  # Hugging Face cache, so models download only once
+    ports:
+      - "${API_BIND:-127.0.0.1}:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10m  # first start downloads ~1.5 GB of models
+
+  # Streamlit test client. Open it through an SSH tunnel (see DEPLOY.md).
+  tester:
+    <<: *image
+    command: >
+      streamlit run app.py --server.address=0.0.0.0 --server.port=8501
+      --server.headless=true --browser.gatherUsageStats=false
+    environment:
+      API_URL: http://api:8000
+      API_DOCS_URL: http://127.0.0.1:8000/docs  # through the SSH tunnel
+    ports:
+      - "127.0.0.1:8501:8501"
+    depends_on:
+      - api
+
+volumes:
+  models:

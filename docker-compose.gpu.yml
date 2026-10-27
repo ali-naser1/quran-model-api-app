@@ -1,0 +1,11 @@
+# Only for a VPS with an NVIDIA GPU (needs the NVIDIA Container Toolkit), together with TORCH=cu128 in .env:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+services:
+  api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

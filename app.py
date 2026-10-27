@@ -16,6 +16,7 @@ from reader_component import quran_reader
 load_dotenv()
 # 127.0.0.1, not localhost: on Windows "localhost" tries IPv6 first and adds ~2 s per request.
 API_URL = os.environ.get("API_URL", "http://127.0.0.1:8000").rstrip("/")
+DOCS_URL = os.environ.get("API_DOCS_URL", f"{API_URL}/docs")  # as the browser sees it
 SURA = 112  # Al-Ikhlas
 READER_KEY = "reader"
 SAMPLE_RATE = 16_000
@@ -65,7 +66,7 @@ with st.sidebar:
     st.caption(f"{health['device']} · {health['vram_gb']} GB VRAM")
     for role, model in health["models"].items():
         st.caption(f"**{role}** · `{model}`")
-    st.link_button("API docs", f"{API_URL}/docs", icon=":material/description:")
+    st.link_button("API docs", DOCS_URL, icon=":material/description:")
 
 
 # --- Tab 1: Whisper API ----------------------------------------------------
