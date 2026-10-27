@@ -7,9 +7,7 @@ x-image: &image
     args:
       TORCH: ${TORCH:-cpu}
   restart: unless-stopped
-  env_file:
-    - path: .env
-      required: false
+  env_file: .env
 
 services:
   # The two APIs. API_BIND = this VPS's LAN IP so the app server on the LAN can reach them.
