@@ -1,5 +1,5 @@
 [project]
-name = "quran-transcriber"
+name = "quran-model-api-app"
 version = "0.2.0"
 description = "Quran recitation APIs (Whisper + Muaalem tajweed) with a Streamlit test client"
 requires-python = ">=3.11,<3.13"

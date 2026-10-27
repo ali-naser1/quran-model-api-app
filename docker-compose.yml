@@ -1,3 +1,5 @@
+name: quran-model-api-app
+
 x-image: &image
   image: quran-speech:latest
   build:

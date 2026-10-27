@@ -25,21 +25,10 @@ curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER   # then log out and back in
 ```
 
-## 2. Give the VPS read access to the private repo (once)
+## 2. Clone, configure, start
 
 ```bash
-ssh-keygen -t ed25519 -N "" -f ~/.ssh/github_quran -C "vps deploy key"
-printf 'Host github.com\n  IdentityFile ~/.ssh/github_quran\n' >> ~/.ssh/config
-cat ~/.ssh/github_quran.pub
-```
-
-Add the printed key as a **read-only deploy key**: GitHub → repo → Settings → Deploy keys → Add,
-or from the PC: `gh repo deploy-key add github_quran.pub --repo ali-naser1/quran-transcriber --title vps`.
-
-## 3. Clone, configure, start
-
-```bash
-git clone git@github.com:ali-naser1/quran-transcriber.git && cd quran-transcriber
+git clone https://github.com/ali-naser1/quran-model-api-app.git && cd quran-model-api-app
 cp .env.example .env
 python3 -c "import secrets; print('API_KEY=' + secrets.token_hex(32))" >> .env
 ip -4 -brief addr                # find this VPS's LAN IP, e.g. 10.0.0.12
@@ -60,7 +49,7 @@ If that times out, a firewall between the two servers is blocking TCP 8000.
 ## Update
 
 ```bash
-cd quran-transcriber && git pull && docker compose up -d --build
+cd quran-model-api-app && git pull && docker compose up -d --build
 ```
 
 ## Open the tester from your PC
