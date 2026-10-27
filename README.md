@@ -66,13 +66,13 @@ Returns one entry per word, in the same order as `GET /tajweed/passage`:
 
 The Uthmani words (Tanzil) with the indices `/check` uses — for rendering the text.
 
-### Example (Python, on the VPS)
+### Example (Python, from the app server on the LAN)
 
 ```python
 import requests
 
 r = requests.post(
-    "http://127.0.0.1:8000/tajweed/check",
+    "http://10.0.0.12:8000/tajweed/check",  # the VPS's LAN IP
     params={"sura": 112},
     headers={"X-API-Key": API_KEY},
     files={"file": open("recitation.webm", "rb")},

@@ -10,7 +10,7 @@ x-image: &image
       required: false
 
 services:
-  # The two APIs. Only reachable from the VPS itself (127.0.0.1) unless API_BIND is changed.
+  # The two APIs. API_BIND = this VPS's LAN IP so the app server on the LAN can reach them.
   api:
     <<: *image
     volumes:
