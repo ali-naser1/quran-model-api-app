@@ -8,7 +8,7 @@ import torch
 from quran_muaalem.inference import Muaalem
 from quran_transcript import MoshafAttributes, explain_error, quran_phonetizer
 
-from quran import Sura, align, tokenize
+from quran import Sura, align, bare_word, tokenize
 from transcriber import SAMPLE_RATE, WhisperEngine
 
 MUAALEM_MODEL = "obadx/muaalem-model-v3_2"
@@ -96,7 +96,7 @@ class TajweedEngine:
             letter += n_letters
             spans.append((min(owners), max(owners)) if owners else None)
 
-        jobs = []  # (wave, uthmani text, first word index)
+        jobs = []  # (wave, the piece's words, first word index)
         prev_end = -1
         for (a, b), span in zip(pieces, spans):
             if span is None:
@@ -105,11 +105,12 @@ class TajweedEngine:
             if first > last:
                 continue
             prev_end = last
-            uthmani = " ".join(w.text for w in sura.words[first : last + 1])
-            jobs.append((audio[a:b], uthmani, first))
+            # Without pause marks: Muaalem fails on them («رَيْبَ ۛ فِيهِ ۛ» → ValueError, 2:2).
+            jobs.append((audio[a:b], [bare_word(w.text) for w in sura.words[first : last + 1]], first))
 
         report = TajweedReport()
-        for wave, uthmani, first in jobs:
+        for wave, texts, first in jobs:
+            uthmani = " ".join(texts)
             try:
                 ref = quran_phonetizer(uthmani, moshaf, remove_spaces=True)
                 # One piece per call: batching pads the reference ids, and quran-muaalem 0.2.2's
@@ -120,7 +121,7 @@ class TajweedEngine:
             except Exception as e:  # library edge cases shouldn't lose the whole check
                 report.skipped.append(f"{uthmani} ({type(e).__name__})")
                 continue
-            word_starts = np.cumsum([0] + [len(w) + 1 for w in uthmani.split()])
+            word_starts = np.cumsum([0] + [len(t) + 1 for t in texts])
             for e in found:
                 word = first + int(np.searchsorted(word_starts, e.uthmani_pos[0], side="right") - 1)
                 report.errors.append(TajweedError(word, e.error_type, _describe(e), e.expected_ph, e.preditected_ph))

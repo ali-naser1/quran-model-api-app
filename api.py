@@ -64,8 +64,9 @@ class Transcript(BaseModel):
 
 class PassageWord(BaseModel):
     index: int
-    text: str
+    text: str  # a pause mark stays with its word: «رَيْبَ ۛ»
     ayah: int  # 0 = basmala
+    position: int  # 1-based within the ayah — the same numbering as Abjad's quran_words
     ayah_end: bool
 
 
@@ -103,7 +104,10 @@ class Check(BaseModel):
 
 
 def passage_words(p: Sura) -> list[PassageWord]:
-    return [PassageWord(index=i, text=w.text, ayah=w.ayah, ayah_end=w.ayah_end) for i, w in enumerate(p.words)]
+    return [
+        PassageWord(index=i, text=w.text, ayah=w.ayah, position=w.position, ayah_end=w.ayah_end)
+        for i, w in enumerate(p.words)
+    ]
 
 
 # --- Routes ------------------------------------------------------------------
@@ -170,7 +174,11 @@ def check(
         tajweed_seconds = time.perf_counter() - start
         skipped = report.skipped
         for e in report.errors:
-            if scores[e.word].status in ("ok", "wrong"):  # notes on unread words are noise
+            status = scores[e.word].status
+            # Notes on unread words are noise. On a word Whisper heard right, a letter or haraka
+            # note contradicts it, and those were the false alarms (Alafasy's «هُدًى»: حروف · نقص);
+            # only its tajweed-rule notes are kept.
+            if status == "wrong" or (status == "ok" and e.kind == "tajweed"):
                 notes.setdefault(e.word, []).append(Note(kind=e.kind, detail=e.detail, expected=e.expected, heard=e.heard))
 
     words = [

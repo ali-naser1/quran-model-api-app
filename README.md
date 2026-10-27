@@ -51,7 +51,7 @@ Returns one entry per word, in the same order as `GET /tajweed/passage`:
   "sura": 112, "name": "الإخلاص", "transcript": "قُلْ هُوَ …",
   "correct": 15, "total": 15, "tajweed_checked": true, "skipped": [],
   "words": [
-    { "index": 4, "text": "قُلْ", "ayah": 1, "ayah_end": false,
+    { "index": 4, "text": "قُلْ", "ayah": 1, "position": 1, "ayah_end": false,
       "status": "ok", "heard": "قُلْ", "notes": [] }
   ],
   "audio_seconds": 16.1, "whisper_seconds": 0.6, "tajweed_seconds": 1.0
@@ -59,7 +59,12 @@ Returns one entry per word, in the same order as `GET /tajweed/passage`:
 ```
 
 - `status`: `ok` · `wrong` · `missed` · `pending` (not reached) · `current` (live only)
-- `notes`: Muaalem findings for that word — `kind` (`tajweed` / `tashkeel` / `normal`), Arabic `detail`
+- `ayah` + `position` (from 1 in each ayah) number the words exactly as Abjad's `quran_words`:
+  same Tanzil text, and a pause mark / ۞ / ۩ is part of its word (`"رَيْبَ ۛ"`), never a word.
+  `ayah: 0` is the Basmala, added when the passage starts at ayah 1 (reading it is optional).
+- `notes`: Muaalem findings for that word — `kind` (`tajweed` / `tashkeel` / `normal`), Arabic `detail`.
+  A `wrong` word keeps all of them; an `ok` word only its `tajweed` ones (a letter or haraka note
+  there contradicts Whisper, and those were the false alarms)
   (e.g. `تجويد · إبدال · المد الطبيعي · المطلوب 2 حركات، المقروء 1`), `expected` / `heard` phonemes
 
 ### `GET /tajweed/passage?sura=112&ayah_from=1&ayah_to=4`
@@ -102,5 +107,6 @@ Speed for Ikhlas (16 s): words-only 0.2 s GPU / ~0.6 s CPU · full check ~1.9 s 
 | `app.py`, `reader_component.py` | Streamlit test client (live Mushaf reader) |
 | `Dockerfile`, `docker-compose*.yml` | VPS deploy (see DEPLOY.md) |
 
-Text: [Tanzil.net](https://tanzil.net) Uthmani (downloaded once to `data/`). `samples/` holds
+Text: [Tanzil.net](https://tanzil.net) Uthmani, the same download as Abjad's Quran dataset
+(downloaded once to `data/`, baked into the Docker image). `samples/` holds
 Alafasy recitations from everyayah.com for testing.

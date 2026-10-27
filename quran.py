@@ -1,5 +1,6 @@
 """Quran text from Tanzil and word-level scoring of a transcript against it."""
 
+import unicodedata
 import urllib.request
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -8,11 +9,13 @@ from pathlib import Path
 from quran_transcript import Aya
 from rapidfuzz.distance import Levenshtein
 
+# The same download as Abjad's Quran dataset (genai-doc-processing-pipeline,
+# quran/dataset/source.py), so every word's text is byte for byte what the reader shows.
 TANZIL_URL = (
-    "https://tanzil.net/pub/download/index.php?marks=true&sajdah=true&rub=false"
-    "&tatweel=true&quranType=uthmani&outType=txt-2&agree=true"
+    "https://tanzil.net/pub/download/index.php"
+    "?quranType=uthmani&outType=txt-2&marks=true&sajdah=true&rub=true&agree=true"
 )
-TANZIL_FILE = Path(__file__).parent / "data" / "tanzil-uthmani.txt"
+TANZIL_FILE = Path(__file__).parent / "data" / "tanzil_uthmani.txt"
 
 
 @dataclass
@@ -20,6 +23,38 @@ class Word:
     text: str
     ayah: int  # 0 = basmala
     ayah_end: bool
+    position: int  # 1-based within the ayah, as Abjad's quran_words
+
+
+def _has_letter(token: str) -> bool:
+    return any(unicodedata.category(ch).startswith("L") for ch in token)
+
+
+def split_words(text: str) -> list[str]:
+    """An ayah's words. A token with no letter (a pause mark, ۞, ۩) is not a word:
+    it joins the word before it, or the first word when it comes first — the same
+    rule as Abjad's quran_words (quran/recitation/words.py display_words)."""
+    words: list[str] = []
+    pending: list[str] = []
+    for token in text.split():
+        if _has_letter(token):
+            words.append(" ".join([*pending, token]))
+            pending = []
+        elif words:
+            words[-1] += f" {token}"
+        else:
+            pending.append(token)
+    return words
+
+
+def bare_word(word: str) -> str:
+    """A word without the pause marks split_words attached to it."""
+    return " ".join(t for t in word.split() if _has_letter(t))
+
+
+def _letters(text: str) -> str:
+    """Base letters only, for comparing spellings that differ in marks (بِّسْمِ / بِسْمِ)."""
+    return "".join(ch for ch in text if ("ء" <= ch <= "ي" and ch != "ـ") or ch == "ٱ")
 
 
 @dataclass
@@ -51,13 +86,15 @@ def load_sura(number: int) -> Sura:
             basmala = text
         if s == number:
             ayat[a] = text
-    if number not in (1, 9) and ayat[1].startswith(basmala):
-        ayat[0] = basmala
-        ayat[1] = ayat[1].removeprefix(basmala).strip()
+    split = {a: split_words(text) for a, text in ayat.items()}
+    head = split_words(basmala)
+    # Compared by letters: Tanzil writes 95's and 97's Basmala «بِّسْمِ».
+    if number not in (1, 9) and _letters("".join(split[1][: len(head)])) == _letters("".join(head)):
+        split[0], split[1] = split[1][: len(head)], split[1][len(head) :]
     words = []
-    for a in sorted(ayat):
-        tokens = ayat[a].split()
-        words += [Word(t, a, i == len(tokens) - 1) for i, t in enumerate(tokens)]
+    for a in sorted(split):
+        tokens = split[a]
+        words += [Word(t, a, i == len(tokens) - 1, i + 1) for i, t in enumerate(tokens)]
     return Sura(number, Aya(number, 1).get().sura_name, words)
 
 
